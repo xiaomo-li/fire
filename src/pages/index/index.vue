@@ -1,39 +1,79 @@
 <template>
   <div>
     <div id="container" class="box"></div>
-    <div class="process" @mouseover="handleAdd" @mouseleave="handleReduce">
-      <div class="process-inner" :style="{ width: process + '%' }"></div>
+    <div class="process">
+      <!-- <div class="process" @mouseover="handleAdd" @mouseleave="handleReduce"> -->
+      <!-- <div class="process-inner" :style="{ width: process + '%' }"></div> -->
+      <!-- <input type="text" v-model="process" /> -->
     </div>
+    <h1 class="scole">{{ this.process }}</h1>
+    <h2>按上下键控制火焰高度</h2>
   </div>
-  <!-- <div><img src="../../static/fire.gif" alt="" /></div> -->
 </template>
 
 <script>
 import * as THREE from "three";
-// import "../../FireShadow.js";
+
 import {
   CSS3DRenderer,
   CSS3DSprite,
 } from "three/addons/renderers/CSS3DRenderer.js";
 import { TWEEN } from "three/addons/libs/tween.module.min.js";
-import { TrackballControls } from "three/addons/controls/TrackballControls.js";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
 export default {
   data() {
     return {
-      title: "Hello",
       addTime: null,
       reduceTime: null,
       process: 20,
+      camera: null,
+      scene: null,
+      renderer: null,
+      particlesTotal: 200,
+      smokeTotal: 200,
+      circles: 8,
+      objects: [],
+      positions: [],
+      circleObject: [],
+      smokeObject: [],
     };
+  },
+  watch: {
+    process: function (val) {
+      this.change(val);
+      this.animate();
+    },
   },
   onLoad() {},
   mounted() {
-    // this.init();
     this.init2();
+    document.addEventListener(
+      "keydown",
+      (e) => {
+        var ev = e || window.event;
+        switch (ev.keyCode) {
+          case 40:
+            if (this.process > 0) {
+              this.process -= 1;
+            }
+            break;
+          case 38:
+            if (this.process < 100) {
+              this.process += 1;
+            }
+            break;
+
+          default:
+            break;
+        }
+      },
+      false
+    );
+    this.animate();
   },
+
   methods: {
-    handleAdd(event) {
+    handleAdd() {
       let that = this;
       clearInterval(that.reduceTime);
       that.reduceTime = null;
@@ -47,7 +87,7 @@ export default {
         that.reduceTime = null;
       }
     },
-    handleReduce(event) {
+    handleReduce() {
       let that = this;
       clearInterval(that.addTime);
       that.addTime = null;
@@ -63,120 +103,220 @@ export default {
       }
     },
     init2() {
-      let camera, scene, renderer;
-      const particlesTotal = 30;
-      const positions = [];
-      const objects = [];
       let that = this;
-      init();
-      animate();
+
       const width = window.innerWidth;
       const height = window.innerHeight;
-      function init() {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        let current = 0;
 
-        camera = new THREE.OrthographicCamera(
-          -width / 2,
-          width / 2,
-          height / 2,
-          -height / 2,
-          1,
-          10
-        );
-        camera.position.z = 10;
+      that.camera = new THREE.OrthographicCamera(0, width, height, 0, 1, 10);
+      that.camera.position.z = 10;
 
-        scene = new THREE.Scene();
+      that.scene = new THREE.Scene();
 
-        // create sprites
+      // 火焰
+      const image = document.createElement("img");
+      const smoke = document.createElement("img");
 
-        const image = document.createElement("img");
-        image.addEventListener("load", function () {
-          for (let i = 0; i < particlesTotal; i++) {
-            const object = new CSS3DSprite(image.cloneNode());
-            (object.position.x = Math.random() * width - width / 2),
-              (object.position.y = -height / 2),
-              (object.position.z = 0);
-            scene.add(object);
+      image.addEventListener("load", function () {
+        for (let i = 0; i < that.particlesTotal; i++) {
+          const object = new CSS3DSprite(image.cloneNode());
+          const object2 = new CSS3DSprite(smoke.cloneNode());
+          object.element.width = 300;
+          object2.element.width = 250;
+          let randomx = Math.random();
+          let randomy = Math.random();
 
-            objects.push(object);
-          }
+          object.position.x = object2.position.x = randomx * width;
+          object.position.y = object2.position.y = height * randomy;
+          object.position.z = object2.position.z = 0;
+          that.scene.add(object);
+          that.scene.add(object2);
+          let t1 = new TWEEN.Tween(object.scale)
+            .to({ y: 1 }, 0)
+            .delay(1500 + Math.random() * 1000)
+            .onComplete(function () {
+              let randomx = Math.random();
 
-          transition();
-        });
-        image.src = "../static/fire.gif";
+              object.position.x = randomx * width;
 
-        // 变动
-        // for (let i = 0; i < particlesTotal; i++) {
-        //   const x = Math.random() * width - width / 2;
-        //   const y = -height / 2 + that.process * height * 0.01;
-        //   const z = 0;
-        //   positions.push(x, y, z);
-        // }
-        // console.log(positions);
-
-        function transition() {
-          const offset = current * particlesTotal * 3;
-          const duration = 2000;
-          for (let i = 0, j = offset; i < particlesTotal; i++, j += 3) {
-            const object = objects[i];
-            new TWEEN.Tween(object.position)
-              .to(
-                {
-                  x: positions[j + 5],
-                  y: positions[j + 1],
-                  z: positions[j + 2],
-                },
-                Math.random() * duration + duration
-              )
-              .easing(TWEEN.Easing.Exponential.InOut)
-              .start();
-          }
-          new TWEEN.Tween(this)
-            .to({}, duration * 3)
-            .onComplete(transition)
+              object.scale.y = 0;
+              object2.scale.y = 1;
+            })
             .start();
-          current = (current + 1) % 4;
+          let t2 = new TWEEN.Tween(object2.scale)
+            .to({ y: 1 }, 0)
+            .delay(700)
+            .onComplete(function () {
+              object.scale.y = 1;
+              object2.scale.y = 0;
+            })
+            .start();
+          t1.chain(t2);
+          t2.chain(t1);
+
+          // 初始化
+          if (object.position.y > height * 0.05) {
+            object.scale.x = 0;
+            object2.scale.x = 0;
+          }
+          that.objects.push(object);
+          that.smokeObject.push(object2);
+        }
+      });
+      image.src = "../static/fire.gif";
+
+      // 熄灭的火焰
+      // smoke.addEventListener("load", function () {
+      //   for (let i = 0; i < that.smokeTotal; i++) {
+      //     const object = new CSS3DSprite(smoke.cloneNode());
+      //     object.element.width = 200;
+
+      //     object.position.x = 0;
+      //     object.position.y = 0;
+      //     object.position.z = 0;
+
+      //     that.scene.add(object);
+      //     object.scale.x = 0;
+
+      //     that.smokeObject.push(object);
+      //   }
+      // });
+      smoke.src = "../static/turnoff.gif";
+      // 障碍物
+
+      for (let i = 0; i <= that.circles; i++) {
+        const circle = document.createElement("img");
+        circle.addEventListener("load", function () {
+          const object = new CSS3DSprite(circle);
+          object.element.width = 100;
+          object.element.height = 100;
+
+          object.position.x = (
+            Math.random() * width * 0.8 +
+            width * 0.1
+          ).toFixed(0);
+
+          object.position.y = (
+            height * 0.4 * Math.random() +
+            height * 0.3
+          ).toFixed(0);
+          object.position.z = 0;
+
+          that.scene.add(object);
+          that.circleObject.push(object);
+        });
+        circle.src = "../static/c" + i + ".png";
+      }
+
+      // renderer
+      that.renderer = new CSS3DRenderer();
+      that.renderer.setSize(window.innerWidth, window.innerHeight);
+      document
+        .getElementById("container")
+        .appendChild(that.renderer.domElement);
+      window.addEventListener("resize", that.onWindowResize);
+      that.renderer.render(this.scene, this.camera);
+    },
+
+    change(val) {
+      const height = window.innerHeight;
+      const width = window.innerWidth;
+      let that = this;
+
+      // 变动
+
+      let percent = val * 0.01;
+      let h1 = height * percent;
+      // 金币消失
+      for (let i of that.circleObject) {
+        if (i.position.y < h1 * 1.1) {
+          i.scale.x = 0;
+        }
+      }
+      // 火焰变动
+      for (let i = 0; i < that.particlesTotal; i++) {
+        const object = that.objects[i];
+        const object2 = that.smokeObject[i];
+        // object.element.src = "../static/fire.gif";
+
+        if (object.position.y < h1 * 0.5) {
+          object.scale.x = 1;
+          object2.scale.x = 1;
+        } else if (
+          object.position.y < h1 * 0.8 &&
+          object.position.y > h1 * 0.5 &&
+          object.position.x > width * 0.2 &&
+          object.position.x < width * 0.8
+        ) {
+          object.scale.x = 1;
+          object2.scale.x = 1;
+        } else if (
+          object.position.y < h1 &&
+          object.position.y > h1 * 0.8 &&
+          object.position.x > width * 0.4 &&
+          object.position.x < width * 0.6
+        ) {
+          object.scale.x = 1;
+          object2.scale.x = 1;
+        } else {
+          // object.element.src = "../static/turnoff.gif";
+          // new TWEEN.Tween(object.scale)
+          //   .to({ x: 0 }, 1500)
+          //   .easing(TWEEN.Easing.Exponential.InOut)
+          //   .start();
+
+          object.scale.x = 0;
+          object2.scale.x = 0;
+          // object2.scale.x = 1;
         }
 
-        // renderer
-        renderer = new CSS3DRenderer();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.getElementById("container").appendChild(renderer.domElement);
-        window.addEventListener("resize", onWindowResize);
+        // const x =
+        //   Math.random() * width * (1 - percent) + (width * percent) / 2;
       }
 
-      function onWindowResize() {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+      that.renderer.render(this.scene, this.camera);
+    },
+    // showSmoke(i) {
+    //   let that = this;
+    //   const object = that.objects[i];
+    //   let x = object.position.x;
+    //   let y = object.position.y;
+    //   if (object.scale.x == 0) {
+    //     new TWEEN.Tween(object.scale)
+    //       .to({ x: 0 }, 1500)
+    //       .onComplete(function () {
+    //         that.smokeObject[i].position.x = x;
+    //         that.smokeObject[i].position.y = y;
+    //         that.smokeObject[i].scale.x = 1;
+    //       })
+    //       .start();
+    //   } else {
+    //     that.smokeObject[i].scale.x = 0;
+    //   }
+    // },
 
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
+    onWindowResize() {
+      let that = this;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
 
-        camera.left = -width / 2;
-        camera.right = width / 2;
-        camera.top = height / 2;
-        camera.bottom = -height / 2;
-        camera.updateProjectionMatrix();
+      that.camera.aspect = width / height;
+      that.camera.updateProjectionMatrix();
 
-        updateHUDSprites();
+      that.camera.left = 0;
+      that.camera.right = width;
+      that.camera.top = height;
+      that.camera.bottom = 0;
+      that.camera.updateProjectionMatrix();
 
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      }
+      that.renderer.setSize(window.innerWidth, window.innerHeight);
+    },
+    animate() {
+      requestAnimationFrame(this.animate);
 
-      for (let i = 0; i < objects.length; i++) {
-        objects[i].position.x = Math.random() * width - width / 2;
-        objects[i].position.y =
-          Math.random() * (-height / 2 + that.process * height * 0.01);
-        objects[i].position.z = 0;
-      }
-
-      function animate() {
-        requestAnimationFrame(animate);
-        TWEEN.update();
-        renderer.render(scene, camera);
-      }
+      TWEEN.update();
+      // this.change();
+      this.renderer.render(this.scene, this.camera);
     },
   },
 };
@@ -187,19 +327,35 @@ export default {
   margin: 0;
   padding: 0;
 }
-.process {
+/* .process {
   position: absolute;
   top: 20px;
   right: 20px;
   width: 200px;
-  height: 20px;
+
   border-radius: 20px;
   overflow: hidden;
   border: 1px solid;
 }
 .process-inner {
   background-color: gray;
-  /* width: 20%; */
+
   height: 100%;
+} */
+input {
+  border: 1px solid;
+}
+.scole {
+  color: #000;
+  margin: 30px;
+  position: absolute;
+  right: 20px;
+  top: 10px;
+}
+h2 {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 10px;
 }
 </style>
