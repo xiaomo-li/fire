@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <view class="app">
     <div id="container" class="box"></div>
     <div class="process">
       <!-- <div class="process" @mouseover="handleAdd" @mouseleave="handleReduce"> -->
@@ -8,7 +8,25 @@
     </div>
     <h1 class="scole">{{ this.process }}</h1>
     <h2>按上下键控制火焰高度</h2>
-  </div>
+    <view class="img-box">
+      <image
+        ref="img1"
+        src="../../static/fire1.gif"
+        @load="onImageLoad"
+        alt=""
+      />
+      <image ref="img2" src="../../static/fire0.gif" alt="" />
+      <image ref="smoke" src="../../static/turnoff.gif" alt="" />
+      <image ref="circle0" src="../../static/c1.gif" alt="" />
+      <image ref="circle2" src="../../static/c2.gif" alt="" />
+      <image ref="circle3" src="../../static/c3.gif" alt="" />
+      <image ref="circle4" src="../../static/c4.gif" alt="" />
+      <image ref="circle5" src="../../static/c5.gif" alt="" />
+      <image ref="circle6" src="../../static/c6.gif" alt="" />
+      <image ref="circle7" src="../../static/c7.gif" alt="" />
+      <image ref="circle1" src="../../static/c8.gif" alt="" />
+    </view>
+  </view>
 </template>
 
 <script>
@@ -18,11 +36,12 @@ import {
   CSS3DRenderer,
   CSS3DSprite,
 } from "three/addons/renderers/CSS3DRenderer.js";
-import { TWEEN } from "three/addons/libs/tween.module.min.js";
+import * as TWEEN from "@tweenjs/tween.js";
 
 export default {
   data() {
     return {
+      fireUrl: "../static/fire1.gif",
       addTime: null,
       reduceTime: null,
       process: 20,
@@ -46,7 +65,7 @@ export default {
   },
   onLoad() {},
   mounted() {
-    this.init2();
+    // this.init2();
     document.addEventListener(
       "keydown",
       (e) => {
@@ -69,7 +88,7 @@ export default {
       },
       false
     );
-    this.animate();
+    // this.animate();
   },
 
   methods: {
@@ -102,11 +121,12 @@ export default {
         that.addTime = null;
       }
     },
-    init2() {
-      let that = this;
 
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+    onImageLoad() {
+      let that = this;
+      const res = uni.getSystemInfoSync();
+      const width = res.screenWidth;
+      const height = res.screenHeight;
 
       that.camera = new THREE.OrthographicCamera(0, width, height, 0, 1, 10);
       that.camera.position.z = 10;
@@ -114,140 +134,146 @@ export default {
       that.scene = new THREE.Scene();
 
       // 火焰
-      const image = document.createElement("img");
-      const smoke = document.createElement("img");
-      function transition() {
-        let percent = that.process * 0.01;
-        let h1 = height * percent;
-        for (let i = 0; i < that.particlesTotal; i++) {
-          const object = that.objects[i];
-          let t1 = new TWEEN.Tween(object.position)
-            .to(
-              {
-                x: Math.random() * width,
-              },
-              0
-            )
-            // .delay(Math.random() * 3000 + 10000)
-            .repeat(Infinity)
-            .onUpdate(function () {
-              if (object.position.y < h1 * 0.5) {
-                object.scale.x = 1;
-              } else if (
-                object.position.y < h1 * 0.8 &&
-                object.position.y > h1 * 0.5 &&
-                object.position.x > width * 0.2 &&
-                object.position.x < width * 0.8
-              ) {
-                object.scale.x = 1;
-              } else if (
-                object.position.y < h1 &&
-                object.position.y > h1 * 0.8 &&
-                object.position.x > width * 0.4 &&
-                object.position.x < width * 0.6
-              ) {
-                object.scale.x = 1;
-              } else {
-                object.scale.x = 0;
-              }
-            })
-            .start();
+      const smoke = this.$refs.smoke;
+      // function transition() {
+      //   let percent = that.process * 0.01;
+      //   let h1 = height * percent;
+      //   for (let i = 0; i < that.particlesTotal; i++) {
+      //     const object = that.objects[i];
+      //     let t1 = new TWEEN.Tween(object.position)
+      //       .to(
+      //         {
+      //           x: Math.random() * width,
+      //         },
+      //         0
+      //       )
+      //       // .delay(Math.random() * 3000 + 10000)
+      //       .repeat(Infinity)
+      //       .onUpdate(function () {
+      //         if (object.position.y < h1 * 0.5) {
+      //           object.scale.x = 1;
+      //         } else if (
+      //           object.position.y < h1 * 0.8 &&
+      //           object.position.y > h1 * 0.5 &&
+      //           object.position.x > width * 0.2 &&
+      //           object.position.x < width * 0.8
+      //         ) {
+      //           object.scale.x = 1;
+      //         } else if (
+      //           object.position.y < h1 &&
+      //           object.position.y > h1 * 0.8 &&
+      //           object.position.x > width * 0.4 &&
+      //           object.position.x < width * 0.6
+      //         ) {
+      //           object.scale.x = 1;
+      //         } else {
+      //           object.scale.x = 0;
+      //         }
+      //       })
+      //       .start();
+      //   }
+      //   new TWEEN.Tween(this).to({}, 2000).onComplete(transition).start();
+      // }
+      for (let i = 0; i < that.particlesTotal; i++) {
+        let image;
+        if (i % 2 == 0) {
+          image = this.$refs.img1;
+        } else {
+          image = this.$refs.img2;
         }
-        new TWEEN.Tween(this).to({}, 2000).onComplete(transition).start();
+        const object = new CSS3DSprite(image.cloneNode());
+        object.element.width = 300;
+        let randomx = Math.random();
+        let randomy = Math.random();
+
+        object.position.x = randomx * width;
+        object.position.y = height * randomy;
+        object.position.z = 0;
+        that.scene.add(object);
+        // 初始化
+        if (object.position.y > height * 0.05) {
+          object.scale.x = 0;
+        }
+        // let delayTime = Math.random() * 1000;
+        let delayTime = 0;
+
+        new TWEEN.Tween(object)
+          .to({}, 10)
+          .delay(delayTime)
+          // .onComplete(function () {
+
+          //   console.log(object);
+          // })
+          .start();
+        that.objects.push(object);
+
+        // 火焰图片
       }
-      image.addEventListener("load", function () {
-        for (let i = 0; i < that.particlesTotal; i++) {
-          const object = new CSS3DSprite(image.cloneNode());
+      // transition();
 
-          object.element.width = 300;
-          let randomx = Math.random();
-          let randomy = Math.random();
-
-          object.position.x = randomx * width;
-          object.position.y = height * randomy;
-          object.position.z = 0;
-
-          that.scene.add(object);
-
-          // 初始化
-          if (object.position.y > height * 0.05) {
-            object.scale.x = 0;
-          }
-          let delayTime = Math.random() * 1000;
-          new TWEEN.Tween(object)
-            .to({}, 10)
-            .delay(delayTime)
-            .onComplete(function () {
-              that.objects.push(object);
-            })
-            .start();
-        }
-        transition();
-      });
-      image.src = "../static/fire1.gif";
-
-      smoke.src = "../static/turnoff.gif";
       // 障碍物
 
       for (let i = 0; i <= that.circles; i++) {
-        const circle = document.createElement("img");
-        circle.addEventListener("load", function () {
-          const object = new CSS3DSprite(circle);
-          const object2 = new CSS3DSprite(smoke.cloneNode());
-          object2.element.width = 250;
-          object.element.width = 200;
-          object.element.height = 200;
-          let randomx = Math.random();
-          let randomy = Math.random();
-          object.position.x = object2.position.x = (
-            randomx * width * 0.8 +
-            width * 0.1
-          ).toFixed(0);
+        const circle = this.$refs["circle" + i];
 
-          object.position.y = object2.position.y = (
-            height * 0.5 * randomy +
-            height * 0.4
-          ).toFixed(0);
-          object.position.z = 0;
-          object2.scale.x = 0;
-          let y = object.position.y;
-          let t1 = new TWEEN.Tween(object.position)
-            .to(
-              {
-                y: y - 20,
-              },
-              randomy * 1200 + 800
-            )
-            .easing(TWEEN.Easing.Quadratic.InOut)
-            .repeat(Infinity)
-            .onUpdate(function () {
-              object2.position.y = object.position.y;
-            })
-            .start();
+        const object = new CSS3DSprite(circle);
+        const object2 = new CSS3DSprite(smoke.cloneNode());
+        object2.element.width = 250;
+        object.element.width = 200;
+        object.element.height = 200;
+        let randomx = Math.random();
+        let randomy = Math.random();
+        object.position.x = object2.position.x = (
+          randomx * width * 0.8 +
+          width * 0.1
+        ).toFixed(0);
 
-          t1.yoyo(true);
+        object.position.y = object2.position.y = (
+          height * 0.5 * randomy +
+          height * 0.4
+        ).toFixed(0);
+        object.position.z = 0;
+        object2.scale.x = 0;
+        let y = object.position.y;
+        let t1 = new TWEEN.Tween(object.position)
+          .to(
+            {
+              y: y - 20,
+            },
+            randomy * 1200 + 800
+          )
+          .easing(TWEEN.Easing.Quadratic.InOut)
+          .repeat(Infinity)
+          .onUpdate(function () {
+            object2.position.y = object.position.y;
+          })
+          .start();
 
-          that.scene.add(object);
-          that.scene.add(object2);
-          that.circleObject.push(object);
-          that.smokeObject.push(object2);
-        });
-        circle.src = "../static/c" + i + ".gif";
+        t1.yoyo(true);
+
+        that.scene.add(object);
+        that.scene.add(object2);
+        that.circleObject.push(object);
+        that.smokeObject.push(object2);
+
+        // circle.src = "../static/c" + i + ".gif";
       }
 
       // renderer
+
       that.renderer = new CSS3DRenderer();
-      that.renderer.setSize(window.innerWidth, window.innerHeight);
+      that.renderer.setSize(width, height);
       document
         .getElementById("container")
         .appendChild(that.renderer.domElement);
-      window.addEventListener("resize", that.onWindowResize);
+
       that.renderer.render(this.scene, this.camera);
     },
 
     change(val) {
-      const height = window.innerHeight;
-      const width = window.innerWidth;
+      const res = uni.getSystemInfoSync();
+      const width = res.screenWidth;
+      const height = res.screenHeight;
       let that = this;
 
       // 变动
@@ -277,9 +303,9 @@ export default {
         }
       }
       // 火焰变动
+
       for (let i = 0; i < that.particlesTotal; i++) {
         const object = that.objects[i];
-
         if (object.position.y < h1 * 0.5) {
           object.scale.x = 1;
         } else if (
@@ -307,27 +333,12 @@ export default {
       that.renderer.render(this.scene, this.camera);
     },
 
-    onWindowResize() {
-      let that = this;
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-
-      that.camera.aspect = width / height;
-      that.camera.updateProjectionMatrix();
-
-      that.camera.left = 0;
-      that.camera.right = width;
-      that.camera.top = height;
-      that.camera.bottom = 0;
-      that.camera.updateProjectionMatrix();
-
-      that.renderer.setSize(window.innerWidth, window.innerHeight);
-    },
     animate() {
       requestAnimationFrame(this.animate);
 
       TWEEN.update();
       // this.change();
+
       this.renderer.render(this.scene, this.camera);
     },
   },
@@ -369,5 +380,11 @@ h2 {
   left: 50%;
   transform: translateX(-50%);
   top: 10px;
+}
+.img-box {
+  display: none;
+}
+.app {
+  overflow: hidden;
 }
 </style>
